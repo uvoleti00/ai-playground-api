@@ -7,6 +7,6 @@ async function bootstrap() {
     origin: 'https://ai-playground-ui-cyan.vercel.app',
     methods: 'GET,POST',
   });
-  await app.listen(process.env.PORT ?? 3001, '0.0.0.0.0');
+  await app.listen(process.env.PORT ?? 3001, '0.0.0.0');
 }
 bootstrap();
