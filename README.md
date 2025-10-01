@@ -1,98 +1,92 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# AI Model Playground (NestJS)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Minimal NestJS project that demonstrates integration with OpenAI-style agents, per-user conversation caching, and token-based auth via Clerk.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Quick links
 
-## Description
+- Project manifest: [package.json](package.json)
+- App entry: [src/main.ts](src/main.ts)
+- Application module: [`AppModule`](src/app.module.ts) ([src/app.module.ts](src/app.module.ts))
+- Controller handling AI endpoints: [`AppController`](src/app.controller.ts) ([src/app.controller.ts](src/app.controller.ts))
+- Agent provider: [`AgentProvider`](src/ai/agents.provider.ts) ([src/ai/agents.provider.ts](src/ai/agents.provider.ts))
+- AI base class: [`AIService`](src/ai/agent.ts) ([src/ai/agent.ts](src/ai/agent.ts))
+- Caching helper: [`CacheProvider`](src/cache/cache-provider.ts) ([src/cache/cache-provider.ts](src/cache/cache-provider.ts))
+- Auth guard: [`AuthGuard`](src/oauth/gaurd/auth-gaurd.ts) ([src/oauth/gaurd/auth-gaurd.ts](src/oauth/gaurd/auth-gaurd.ts))
+- Clerk client provider: [`ClerkClientProvider`](src/oauth/gaurd/clerk-provider.ts) ([src/oauth/gaurd/clerk-provider.ts](src/oauth/gaurd/clerk-provider.ts))
+- E2E test example: [test/app.e2e-spec.ts](test/app.e2e-spec.ts)
+- Example env: [.env.example](.env.example)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Requirements
 
-## Project setup
+- Node.js (recommended 18+)
+- npm
+
+## Install
 
 ```bash
-$ npm install
+npm install
 ```
+Environment
 
-## Compile and run the project
+Copy the example env and provide your Clerk keys (or other secrets):
 
-```bash
-# development
-$ npm run start
+cp [.env.example](http://_vscodecontentref_/0) .env
+# then fill CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY
 
-# watch mode
-$ npm run start:dev
+Development
 
-# production mode
-$ npm run start:prod
-```
+Start the server in watch mode:
 
-## Run tests
+npm run start:dev
 
-```bash
-# unit tests
-$ npm run test
+Default listen port is controlled by $PORT (fallback 3001).
+CORS is enabled and pre-configured in src/main.ts.
+Production
+Build then run:
 
-# e2e tests
-$ npm run test:e2e
+npm run build
+npm run start:prod
 
-# test coverage
-$ npm run test:cov
-```
+API (important endpoints)
+All endpoints require a Clerk token via the Authorization header: Authorization: Bearer <token> (handled by AuthGuard).
 
-## Deployment
+POST /ai/stream
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+Body: { model: "GPT5" | "GPT5mini", prompt: string }
+Streams model tokens as Server-Sent Events (SSE). Conversation history is stored per user and model via CacheProvider.
+GET /ai/history/:model
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Returns cached conversation for the current user and specified model.
+GET /ai/newChat
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+Clears cached history for the current user.
+Refer to AppController for detailed behavior and token-cost reporting.
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
 
-## Resources
+Architecture notes
+AI integrations subclass AIService. Example providers are registered in AppModule.
+Discovery-based provider registration is used: AgentProvider enumerates registered providers at startup.
+Conversations are cached per-user with a TTL (configured in the CacheModule in AppModule).
+Authentication is implemented with Clerk via ClerkClientProvider and enforced with AuthGuard.
+Useful scripts
+See package.json for all scripts (build, lint, test, start, etc.).
 
-Check out a few resources that may come in handy when working with NestJS:
+Contributing
+Follow linting rules: npm run lint
+Format with Prettier: npm run format
+License
+Project is currently unlicensed (see package.json).
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
 
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Linked files and symbols referenced above:
+- [package.json](http://_vscodecontentref_/1)  
+- [AppModule](http://_vscodecontentref_/2) (src/app.module.ts)  
+- [main.ts](http://_vscodecontentref_/3)  
+- [AppController](http://_vscodecontentref_/4) (src/app.controller.ts)  
+- [AgentProvider](http://_vscodecontentref_/5) (src/ai/agents.provider.ts)  
+- [AIService](http://_vscodecontentref_/6) (src/ai/agent.ts)  
+- [CacheProvider](http://_vscodecontentref_/7) (src/cache/cache-provider.ts)  
+- [AuthGuard](http://_vscodecontentref_/8) (src/oauth/gaurd/auth-gaurd.ts)  
+- [ClerkClientProvider](http://_vscodecontentref_/9) (src/oauth/gaurd/clerk-provider.ts)  
+- [app.e2e-spec.ts](http://_vscodecontentref_/10)  
+- [.env.example](http://_vscodecontentref_/11)
