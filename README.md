@@ -1,92 +1,155 @@
 # AI Model Playground (NestJS)
 
-Minimal NestJS project that demonstrates integration with OpenAI-style agents, per-user conversation caching, and token-based auth via Clerk.
+A minimal NestJS project demonstrating integration with OpenAI Agents, per-user conversation caching, and token-based authentication via Clerk.
 
-## Quick links
+---
 
-- Project manifest: [package.json](package.json)
-- App entry: [src/main.ts](src/main.ts)
-- Application module: [`AppModule`](src/app.module.ts) ([src/app.module.ts](src/app.module.ts))
-- Controller handling AI endpoints: [`AppController`](src/app.controller.ts) ([src/app.controller.ts](src/app.controller.ts))
-- Agent provider: [`AgentProvider`](src/ai/agents.provider.ts) ([src/ai/agents.provider.ts](src/ai/agents.provider.ts))
-- AI base class: [`AIService`](src/ai/agent.ts) ([src/ai/agent.ts](src/ai/agent.ts))
-- Caching helper: [`CacheProvider`](src/cache/cache-provider.ts) ([src/cache/cache-provider.ts](src/cache/cache-provider.ts))
-- Auth guard: [`AuthGuard`](src/oauth/gaurd/auth-gaurd.ts) ([src/oauth/gaurd/auth-gaurd.ts](src/oauth/gaurd/auth-gaurd.ts))
-- Clerk client provider: [`ClerkClientProvider`](src/oauth/gaurd/clerk-provider.ts) ([src/oauth/gaurd/clerk-provider.ts](src/oauth/gaurd/clerk-provider.ts))
-- E2E test example: [test/app.e2e-spec.ts](test/app.e2e-spec.ts)
-- Example env: [.env.example](.env.example)
+## Project Features
+
+- **OpenAI Agent Integration:**  
+  Uses the `@openai/agents` package to run AI models (e.g., GPT5, GPT5mini) with built-in observability features such as streaming, logging, and tracing.
+- **Per-User Conversation Caching:**  
+  Stores and retrieves chat history for each user and model using a cache provider with a 30-minute TTL.
+- **Token-Based Authentication:**  
+  Secures endpoints using Clerk tokens and a custom NestJS AuthGuard.
+- **Server-Sent Events (SSE):**  
+  Streams AI responses to the client in real time.
+- **Extensible Architecture:**  
+  Easily add new AI models or providers by implementing the `AIService` interface.
+
+---
+
+## Used OpenAI Agent Features
+
+- **Streaming:**  
+  Supports streaming responses from the agent for real-time token delivery.
+- **Observability:**  
+  The agent provides built-in observability, including logging, tracing, and error reporting for each run.
+- **Flexible Agent Configuration:**  
+  Agents can be configured with custom instructions and reused across requests for efficiency.
+
+---
+
+## Quick Links
+
+- [package.json](package.json) – Project manifest
+- [src/main.ts](src/main.ts) – App entry
+- [src/app.module.ts](src/app.module.ts) – Application module
+- [src/app.controller.ts](src/app.controller.ts) – Controller handling AI endpoints
+- [src/ai/agents.provider.ts](src/ai/agents.provider.ts) – Agent provider
+- [src/ai/agent.ts](src/ai/agent.ts) – AI base class
+- [src/cache/cache-provider.ts](src/cache/cache-provider.ts) – Caching helper
+- [src/oauth/gaurd/auth-gaurd.ts](src/oauth/gaurd/auth-gaurd.ts) – Auth guard
+- [src/oauth/gaurd/clerk-provider.ts](src/oauth/gaurd/clerk-provider.ts) – Clerk client provider
+- [test/app.e2e-spec.ts](test/app.e2e-spec.ts) – E2E test example
+- [.env.example](.env.example) – Example env
+
+---
 
 ## Requirements
 
-- Node.js (recommended 18+)
+- Node.js (18+ recommended)
 - npm
 
-## Install
+---
+
+## Installation
 
 ```bash
 npm install
 ```
-Environment
 
-Copy the example env and provide your Clerk keys (or other secrets):
+### Environment Setup
 
-cp [.env.example](http://_vscodecontentref_/0) .env
-# then fill CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY
+Copy the example env file and provide your Clerk keys:
 
-Development
+```bash
+cp .env.example .env
+# Then fill CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY
+```
+
+---
+
+## Development
 
 Start the server in watch mode:
 
+```bash
 npm run start:dev
+```
 
-Default listen port is controlled by $PORT (fallback 3001).
-CORS is enabled and pre-configured in src/main.ts.
-Production
-Build then run:
+- Default port: `$PORT` (fallback 3001)
+- CORS enabled in `src/main.ts`
 
+### Production
+
+Build and run:
+
+```bash
 npm run build
 npm run start:prod
+```
 
-API (important endpoints)
-All endpoints require a Clerk token via the Authorization header: Authorization: Bearer <token> (handled by AuthGuard).
+---
 
-POST /ai/stream
+## API Endpoints
 
-Body: { model: "GPT5" | "GPT5mini", prompt: string }
-Streams model tokens as Server-Sent Events (SSE). Conversation history is stored per user and model via CacheProvider.
-GET /ai/history/:model
+All endpoints require a Clerk token in the Authorization header:
 
-Returns cached conversation for the current user and specified model.
-GET /ai/newChat
+```
+Authorization: Bearer <token>
+```
 
-Clears cached history for the current user.
-Refer to AppController for detailed behavior and token-cost reporting.
+- **POST /ai/stream**  
+  Body: `{ model: "GPT5" | "GPT5mini", prompt: string }`  
+  Streams model tokens as SSE. Conversation history is stored per user and model.
 
+- **GET /ai/history/:model**  
+  Returns cached conversation for the current user and specified model.
 
-Architecture notes
-AI integrations subclass AIService. Example providers are registered in AppModule.
-Discovery-based provider registration is used: AgentProvider enumerates registered providers at startup.
-Conversations are cached per-user with a TTL (configured in the CacheModule in AppModule).
-Authentication is implemented with Clerk via ClerkClientProvider and enforced with AuthGuard.
-Useful scripts
-See package.json for all scripts (build, lint, test, start, etc.).
+- **GET /ai/newChat**  
+  Clears cached history for the current user.
 
-Contributing
-Follow linting rules: npm run lint
-Format with Prettier: npm run format
-License
-Project is currently unlicensed (see package.json).
+See `src/app.controller.ts` for details.
 
+---
 
-Linked files and symbols referenced above:
-- [package.json](http://_vscodecontentref_/1)  
-- [AppModule](http://_vscodecontentref_/2) (src/app.module.ts)  
-- [main.ts](http://_vscodecontentref_/3)  
-- [AppController](http://_vscodecontentref_/4) (src/app.controller.ts)  
-- [AgentProvider](http://_vscodecontentref_/5) (src/ai/agents.provider.ts)  
-- [AIService](http://_vscodecontentref_/6) (src/ai/agent.ts)  
-- [CacheProvider](http://_vscodecontentref_/7) (src/cache/cache-provider.ts)  
-- [AuthGuard](http://_vscodecontentref_/8) (src/oauth/gaurd/auth-gaurd.ts)  
-- [ClerkClientProvider](http://_vscodecontentref_/9) (src/oauth/gaurd/clerk-provider.ts)  
-- [app.e2e-spec.ts](http://_vscodecontentref_/10)  
-- [.env.example](http://_vscodecontentref_/11)
+## Architecture Notes
+
+- **AIService Interface:**  
+  All AI providers implement a minimal interface for easy extension.
+- **AgentProvider:**  
+  Discovers and registers available AI agents at startup.
+- **CacheProvider:**  
+  Handles per-user, per-model chat history with a 30-minute TTL.
+- **AuthGuard & ClerkClientProvider:**  
+  Enforces authentication using Clerk tokens.
+
+---
+
+## Useful Scripts
+
+See `package.json` for all scripts.
+
+- Lint:
+  ```bash
+  npm run lint
+  ```
+- Format:
+  ```bash
+  npm run format
+  ```
+- Test:
+  ```bash
+  npm run test
+  ```
+- E2E Test:
+  ```bash
+  npm run test:e2e
+  ```
+
+---
+
+## License
+
+Project is currently unlicensed (see `package.json`).
