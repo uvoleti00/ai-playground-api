@@ -1,4 +1,4 @@
-# AI Model Playground (NestJS)
+# AI Playground (NestJS)
 
 A minimal NestJS project demonstrating integration with OpenAI Agents, per-user conversation caching, and token-based authentication via Clerk.
 
@@ -138,14 +138,6 @@ See `package.json` for all scripts.
 - Format:
   ```bash
   npm run format
-  ```
-- Test:
-  ```bash
-  npm run test
-  ```
-- E2E Test:
-  ```bash
-  npm run test:e2e
   ```
 
 ---
