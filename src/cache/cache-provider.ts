@@ -11,7 +11,7 @@ export class CacheProvider {
   async addMessage(id: string, message: ChatMessage) {
     const history = (await this.cacheManager.get<ChatMessage[]>(id)) || [];
     history.push(message);
-    await this.cacheManager.set(id, history, 0);
+    await this.cacheManager.set(id, history, 1800000);
   }
 
   async getHistory(id: string): Promise<ChatMessage[]> {
@@ -19,9 +19,14 @@ export class CacheProvider {
       (await this.cacheManager.get<ChatMessage[]>(id)) ?? [];
 
     if (history.length) {
-      await this.cacheManager.set(id, history, 0);
+      await this.cacheManager.set(id, history, 1800000);
     }
 
     return history;
+  }
+
+  async clearHistory(id: string): Promise<void> {
+    await this.cacheManager.set(`${id}_GPT5`, []);
+    await this.cacheManager.set(`${id}_GPT5mini`, []);
   }
 }

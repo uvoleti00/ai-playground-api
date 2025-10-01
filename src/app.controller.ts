@@ -1,8 +1,8 @@
-import { Controller, Post, Body, Res, Req } from '@nestjs/common';
+import { Controller, Post, Body, Res, Req, Get, Param } from '@nestjs/common';
 import express from 'express';
-import { AgentsService } from './ai-providers/agents.service';
+import { AgentProvider } from './ai/agents.provider';
 import * as requestType from './oauth/gaurd/request-type';
-import { CacheProvider } from './cache/cache-provider';
+import { CacheProvider, ChatMessage } from './cache/cache-provider';
 import { assistant, user } from '@openai/agents';
 
 type Model = 'GPT5' | 'GPT5mini';
@@ -20,7 +20,7 @@ export class AppController {
   };
 
   constructor(
-    private readonly agentsService: AgentsService,
+    private readonly agentsService: AgentProvider,
     private readonly cacheProvider: CacheProvider,
   ) {}
 
@@ -50,7 +50,10 @@ export class AppController {
         `${req.userId}_${body.model}`,
       );
 
-      const stream = await this.agentsService.ask(body.model, history);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const newArr = history.map(({ providerData, ...rest }) => rest);
+
+      const stream = await this.agentsService.ask(body.model, newArr);
 
       /* const pass = new PassThrough();
       let finalOutput = '';
@@ -78,7 +81,7 @@ export class AppController {
           res.end('Please try again..');
         });*/
 
-      let usage: string;
+      let usage: string = '';
       for await (const event of stream) {
         if (event.type === 'raw_model_stream_event') {
           if (event.data.type === 'output_text_delta') {
@@ -86,17 +89,23 @@ export class AppController {
           }
 
           if (event.data.type === 'response_done') {
-            const cost =
+            const cost: number =
               (event.data.response.usage.inputTokens / 1000) * inputRate +
               (event.data.response.usage.outputTokens / 1000) * outputRate;
-            usage = `Total tokens : ${event.data.response.usage.totalTokens}, Cost : ${cost}`;
+
+            let finalPrice: string;
+
+            if (cost < 0.001) finalPrice = cost.toFixed(6);
+            else if (cost < 1) finalPrice = cost.toFixed(4);
+            else finalPrice = cost.toFixed(2);
+            usage = `Total tokens : ${event.data.response.usage.totalTokens}, Cost : ${finalPrice}`;
             res.write(`\n\n\n\n ###### **${usage}**`);
           }
         } else if (event.type === 'run_item_stream_event') {
           if (event.item.type === 'message_output_item') {
             await this.cacheProvider.addMessage(
               `${req.userId}_${body.model}`,
-              assistant(`${event.item.content}`),
+              assistant(`${event.item.content}`, { Metrics: usage }),
             );
             res.end();
           }
@@ -106,5 +115,18 @@ export class AppController {
       console.log(err);
       res.end();
     }
+  }
+
+  @Get('history/:model')
+  async fetchConversation(
+    @Req() req: requestType.RequestWithUser,
+    @Param() model: string,
+  ): Promise<ChatMessage[]> {
+    return await this.cacheProvider.getHistory(`${req.userId}_${model}`);
+  }
+
+  @Get('/newChat')
+  async clearHistory(@Req() req: requestType.RequestWithUser) {
+    return await this.cacheProvider.clearHistory(req.userId);
   }
 }

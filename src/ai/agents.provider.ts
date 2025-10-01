@@ -1,11 +1,11 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { DiscoveryService } from '@nestjs/core';
-import { AIService } from './ai.provider.interface';
+import { AIService } from './agent';
 import { Agent, StreamedRunResult } from '@openai/agents';
 import { ChatMessage } from 'src/cache/cache-provider';
 
 @Injectable()
-export class AgentsService implements OnModuleInit {
+export class AgentProvider implements OnModuleInit {
   private agentsMap: Record<string, AIService> = {};
 
   constructor(private readonly discoveryService: DiscoveryService) {}
